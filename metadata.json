@@ -1,0 +1,6 @@
+{
+  "name": "MiHelp+ - Campus Medical Help Platform",
+  "description": "Campus medical help platform for college students with health profiles, MICA insurance ID generation, request management, doctor directory, dispensary index, and emergency assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

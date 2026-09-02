@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /profiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /helpRequests/{requestId} {
+      allow read, update, delete: if request.auth != null && resource.data.studentId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /dispensaries/{dispensaryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /orders/{orderId} {
+      // Student creates pending order
+      allow create: if request.auth != null 
+        && request.resource.data.studentId == request.auth.uid 
+        && request.resource.data.status == 'pending';
+
+      // Read: Student reads their own orders, or any signed-in user reads pending orders
+      allow read: if request.auth != null 
+        && (resource.data.studentId == request.auth.uid || resource.data.status == 'pending');
+
+      // Update: 
+      // 1. Student updates their own order while still pending
+      // 2. Another signed-in user (pharmacy partner) transitions from pending to accepted
+      // Once status is accepted, no further updates are allowed by anyone.
+      allow update: if request.auth != null && resource.data.status == 'pending' && (
+        (resource.data.studentId == request.auth.uid && request.resource.data.status == 'pending') ||
+        (resource.data.studentId != request.auth.uid 
+          && request.resource.data.status == 'accepted' 
+          && request.resource.data.acceptedByDispensaryId != null 
+          && request.resource.data.acceptedByDispensaryName != null)
+      );
+
+      // Student can delete/cancel only while status is pending
+      allow delete: if request.auth != null 
+        && resource.data.studentId == request.auth.uid 
+        && resource.data.status == 'pending';
+    }
+
+    match /complaints/{complaintId} {
+      // Student creates complaint
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+      // Student reads their own complaints
+      allow read: if request.auth != null && resource.data.studentId == request.auth.uid;
+      // No updates or deletions allowed
+      allow update, delete: if false;
+    }
+  }
+}
